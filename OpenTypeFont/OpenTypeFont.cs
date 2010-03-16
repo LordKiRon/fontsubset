@@ -1030,27 +1030,27 @@ namespace OpenTypeFonts
             int count = 0;
             foreach (var entry in names)
             {
-                // TODO: figure out which entries are required                         
-                // entry.needed = true;                 
                 switch (entry.NameId)
                 {
                     case 0:
-                    // copyright; always keep
+                        // copyright; always keep
                         entry.Needed = true;
                         break;
                     case 1:
-                        // family 
+                    // family 
                     case 4:
-                        // full name 
+                    // full name 
                     case 16:
-                        // prefered family 
+                    // prefered family 
                     case 17:
+                    // Postscript name for the font
+                    case 6:
                         // preferred full name
                         entry.Needed = true;
                         inputStream.Seek(entry.Offset, SeekOrigin.Begin);
                         byte[] buffer = new byte[entry.Offset];
                         inputStream.Read(buffer, 0, entry.Length);
-                        if(IsUnicodeEntry(entry))
+                        if (IsUnicodeEntry(entry))
                         {
                             string name = DecodeUnicode(buffer, 0, entry.Length);
                             name = "Subset-" + name;
@@ -1059,8 +1059,8 @@ namespace OpenTypeFonts
                         else
                         {
                             Encoding isoEncoding = Encoding.GetEncoding("iso-8859-1");
-                            int length = DetectStringLength(buffer,isoEncoding);
-                            string name = isoEncoding.GetString(buffer,0,length);  
+                            int length = DetectStringLength(buffer, isoEncoding);
+                            string name = isoEncoding.GetString(buffer, 0, length);
                             name = "Subset-" + name;
                             entry.NewContent = isoEncoding.GetBytes(name);
                         }
@@ -1088,6 +1088,10 @@ namespace OpenTypeFonts
                             Encoding isoEncoding = Encoding.GetEncoding("iso-8859-1");
                             entry.NewContent = isoEncoding.GetBytes(GetFontID());
                         }
+                        break;
+                     default:
+                        // TODO: figure out which entries are required                         
+                        //entry.Needed = true;
                         break;
                 }
                 if (entry.Needed)

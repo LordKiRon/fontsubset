@@ -1695,11 +1695,12 @@ namespace OpenTypeFonts
         {
             foreach(var key in sidIndicesCFF)
             {
-                if (!dict.ContainsKey(key))
+                KeyCFF cffKey = new KeyCFF(key);
+                if (!dict.ContainsKey(cffKey))
                 {
                     continue;
                 }
-                object val = dict[key];
+                object val = dict[cffKey];
                 if (val is int)
                 {
                     int sid = Convert.ToInt32(val);
@@ -1707,7 +1708,7 @@ namespace OpenTypeFonts
                     {
                         StringCFF str = stringsCFF[sid - CFF_STD_STRING_COUNT];
                         str.Needed = true;
-                        dict[key] = str;
+                        dict[cffKey] = str;
                     }
                 }
                 else

@@ -12,7 +12,7 @@ namespace OTFTest
         static void Main(string[] args)
         {
             using (Stream stream = File.OpenRead("AdobeHeitiStd-Regular.otf")) 
-            //using (Stream stream = File.OpenRead("infont.ttf"))
+            //using (Stream stream = File.OpenRead("infont.otf"))
             {
                 OpenTypeFont font = new OpenTypeFont(stream,false);
                 font.Play("Hello!");

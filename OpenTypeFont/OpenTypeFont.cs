@@ -420,7 +420,7 @@ namespace OpenTypeFonts
                 case 7:
                 case 8:
                 case 9:
-                    sb.Append(nibble + '0');
+                    sb.Append(nibble.ToString());
                     break;
                 case 0xA:
                     sb.Append(".");
@@ -1305,22 +1305,28 @@ namespace OpenTypeFonts
             int charstringsOffset = (int)outStream.Length;
             WriteIndexCFF(outStream, MakeGlyphArrayCff());
             int privatedictOffset = (int)outStream.Length;
-            WriteDictCff(outStream, privateDictCFF);
-            int privatesubrOffset = (int) outStream.Length;
-            if (privatesubrOffset - privatedictOffset != origPrivateDictLen)
+            if (privateDictCFF != null)
             {
-                throw new Exception("private dict writing error");
-            }
-            if (privateSubrsCFF != null)
-            {
-                WriteIndexCFF(outStream, privateSubrsCFF);    
+                WriteDictCff(outStream, privateDictCFF);
+                int privatesubrOffset = (int)outStream.Length;
+                if (privatesubrOffset - privatedictOffset != origPrivateDictLen)
+                {
+                    throw new Exception("private dict writing error");
+                }
+                if (privateSubrsCFF != null)
+                {
+                    WriteIndexCFF(outStream, privateSubrsCFF);
+                }
             }
             
 
             byte[] result = outStream.ToArray();
             SetIntAtIndex(result,charset.Offset,charsetOffset);
             SetIntAtIndex(result, charstrings.Offset, charstringsOffset);
-            SetIntAtIndex(result, privatedict.Offset, privatedictOffset);
+            if (privateDictCFF != null)
+            {
+                SetIntAtIndex(result, privatedict.Offset, privatedictOffset);                
+            }
             return result;
         }
 

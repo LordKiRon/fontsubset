@@ -42,6 +42,7 @@ namespace OpenTypeFonts
         private int variableWidthCount;
         private Stream inputStream;
         private int NewVariableWidthCount;
+        private int advanceWidthMax;
         private int NewGlyphCount;
         private string FontID { get; set; }
 
@@ -1485,9 +1486,25 @@ namespace OpenTypeFonts
             byte[] buf = new byte[hhea.Length]; // expect 36 bytes long
             inputStream.Seek(hhea.Offset, SeekOrigin.Begin);
             inputStream.Read(buf, 0, hhea.Length);
+            advanceWidthMax = CalculateAdvanceWidthMax();
+            buf[10] = (byte)(advanceWidthMax>>8);
+            buf[11] = (byte) (advanceWidthMax);
             buf[34] = (byte)(NewVariableWidthCount >> 8);
             buf[35] = (byte)(NewVariableWidthCount);
             return buf;
+        }
+
+        private int CalculateAdvanceWidthMax()
+        {
+            int max = 0;
+            foreach (var glyph in glyphs)
+            {
+                if (glyph.Needed && (glyph.Advance > max))
+                {
+                    max = glyph.Advance;
+                }
+            }
+            return max;
         }
 
         private byte[] BuildHead(TableDirectoryEntry head, bool shortOffsets)

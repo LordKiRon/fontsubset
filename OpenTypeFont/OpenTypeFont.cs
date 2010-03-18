@@ -45,10 +45,46 @@ namespace OpenTypeFonts
         private int NewGlyphCount;
         private string FontID { get; set; }
 
+        // Font properties (read from OS/2 section)
         public int Weight { get; set; }
         public int Width { get; set; }
         public FontPropertyConstants Style { get; set; }
         public int FsType { get; set; }
+        public int SubscriptXSize { get; set; }
+        public int SubscriptYSize { get; set; }
+        public int SubscriptXOffset { get; set; }
+        public int SubscriptYOffset { get; set; }
+        public int SuperscriptXSize { get; set; }
+        public int SuperscriptYSize { get; set; }
+        public int SuperscriptXOffset { get; set; }
+        public int SuperscriptYOffset { get; set; }
+        public int StrikeoutSize { get; set; }
+        public int StrikeoutPosition { get; set; }
+        public int FamilyClass { get; set; }
+        public int UnicodeRange1 { get; set; }
+        public int UnicodeRange2 { get; set; }
+        public int UnicodeRange3 { get; set; }
+        public int UnicodeRange4 { get; set; }
+        public int TypoAscender { get; set; }
+        public int TypoDescender { get; set; }
+        public int TypoLineGap { get; set; }
+        public int WinAscent { get; set; }
+        public int WinDescent { get; set; }
+        public int CodePageRange1 { get; set; }
+        public int CodePageRange2 { get; set; }
+        public int Height { get; set; }
+        public int CapHeight { get;set; }
+        public int DefaultChar { get; set; }
+        public int BreakChar { get; set; }
+        public int MaxContext { get; set; }
+        
+        private byte[] panos = new byte[10];
+        private char[] achVendID = new char[4];
+        private int fsSelection;
+        private int Os2version;
+        private int CharRange;
+
+
         public string FamilyName { get; set; }
         public bool TrueTypeGlyphs { get; set; }
 
@@ -126,7 +162,19 @@ namespace OpenTypeFonts
             {
                 ReadCFF(stream);
             }
-            
+            ReadGlyphsWidths(stream);
+        }
+
+        private void ReadGlyphsWidths(Stream stream)
+        {
+            foreach (var glyph in glyphs)
+            {
+                stream.Seek(glyph.Offset, SeekOrigin.Begin);
+                byte[] buf = new byte[10];
+                stream.Read(buf,0,10);
+                int min = IOUtils.GetShort(buf, 2);
+                int max = IOUtils.GetShort(buf, 6);
+            }
         }
 
         private void ReadCFF(Stream stream)
@@ -703,18 +751,85 @@ namespace OpenTypeFonts
                 throw new Exception("No OS/2 table found");
             }
             stream.Seek(os2.Offset, SeekOrigin.Begin);
-            byte[] buffer = new byte[11];
-            stream.Read(buffer, 0, 10);
-            Weight = IOUtils.GetShort(buffer, 4);
-            Width = IOUtils.GetShort(buffer, 6);
-            FsType = IOUtils.GetShort(buffer, 8);
-            stream.Seek(os2.Offset+62, SeekOrigin.Begin);
+            byte[] buffer = new byte[30];
             stream.Read(buffer, 0, 2);
-            short fsSelection = IOUtils.GetShort(buffer, 0);
-            if ((fsSelection &1) != 0 )
+            Os2version = IOUtils.GetShort(buffer,0);
+
+            stream.Read(buffer, 0,30);
+            //int currAverage = IOUtils.GetShort(buffer, 0); // not needed in future
+            Weight = IOUtils.GetShort(buffer, 2);
+            Width = IOUtils.GetShort(buffer, 4);
+            FsType = IOUtils.GetShort(buffer, 6);
+            SubscriptXSize = IOUtils.GetShort(buffer, 8);
+            SubscriptYSize = IOUtils.GetShort(buffer, 10);
+            SubscriptXOffset = IOUtils.GetShort(buffer, 12);
+            SubscriptYOffset = IOUtils.GetShort(buffer, 14);
+            SuperscriptXSize = IOUtils.GetShort(buffer, 16);
+            SuperscriptYSize = IOUtils.GetShort(buffer, 18);
+            SuperscriptXOffset = IOUtils.GetShort(buffer, 20);
+            SuperscriptYOffset = IOUtils.GetShort(buffer, 22);
+            StrikeoutSize = IOUtils.GetShort(buffer, 24);
+            StrikeoutPosition = IOUtils.GetShort(buffer, 26);
+            FamilyClass = IOUtils.GetShort(buffer, 28);
+
+            stream.Read(panos, 0, 10);
+
+            if (Os2version == 0)
+            {
+                stream.Read(buffer, 0, 4); // ulCharRange - not really defined, ok to set all to 0 (4 bytes)
+                CharRange = IOUtils.GetInt(buffer, 0);
+            }
+            else
+            {
+                stream.Read(buffer, 0, 16);
+                UnicodeRange1 = IOUtils.GetInt(buffer, 0);
+                UnicodeRange2 = IOUtils.GetInt(buffer, 4);
+                UnicodeRange3 = IOUtils.GetInt(buffer, 8);
+                UnicodeRange4 = IOUtils.GetInt(buffer, 12);
+            }
+
+            stream.Read(buffer, 0, 4);
+            Encoding isoEncoding = Encoding.GetEncoding("iso-8859-1");
+            achVendID = isoEncoding.GetChars(buffer, 0, 4);
+
+            stream.Read(buffer, 0, 2);
+            fsSelection = IOUtils.GetShort(buffer, 0);
+            if ((fsSelection &1) != 0 ) // no idea why just this, but that's ported from Java
             {
                 Style = FontPropertyConstants.STYLE_ITALIC;
             }
+
+            stream.Read(buffer, 0, 4); // first and last char index, we will regenerate them, so no need to store
+
+            stream.Read(buffer,0, 10);
+            TypoAscender = IOUtils.GetShort(buffer, 0);
+            TypoDescender = IOUtils.GetShort(buffer, 2);
+            TypoLineGap = IOUtils.GetShort(buffer, 4);
+            WinAscent = IOUtils.GetShort(buffer, 6);
+            WinDescent = IOUtils.GetShort(buffer, 8);
+
+            if (Os2version == 0) // here is OS2 version 0 ends
+            {
+                return;
+            }
+
+            stream.Read(buffer, 0, 8);
+            CodePageRange1 = IOUtils.GetInt(buffer, 0);
+            CodePageRange2 = IOUtils.GetInt(buffer, 4);
+
+            if (Os2version == 1) // here is OS2 version 0 ends
+            {
+                return;
+            }
+
+            stream.Read(buffer, 0, 10);
+
+            Height      = IOUtils.GetInt(buffer, 0);
+            CapHeight   = IOUtils.GetInt(buffer, 2);
+            DefaultChar = IOUtils.GetInt(buffer, 4);
+            BreakChar   = IOUtils.GetInt(buffer, 6);
+            MaxContext  = IOUtils.GetInt(buffer, 8);
+
         }
 
         public void Play(string text)
@@ -740,6 +855,25 @@ namespace OpenTypeFonts
             }
             return false;
         }
+
+        private short CalculateAverageWeight()
+        {
+            int averageWeight = 0;
+            int count = 1;
+            foreach (var glyph in glyphs)
+            {
+                if (glyph.Needed)
+                {
+                    averageWeight += glyph.Advance;
+                    if (glyph.Advance != 0)
+                    {
+                        count++;
+                    }
+                }
+            }
+            return (short)(averageWeight/count);
+        }
+
 
         public byte[] GetSubsettedFont()
         {
@@ -933,7 +1067,7 @@ namespace OpenTypeFonts
                 }
                 else if (entry.Identifier.Equals("OS/2")) 
                 {
-                    // good as is                                  
+                    entry.NewContent = BuildOS2(entry);
                     entry.Needed = true;
                 }
                 else if (entry.Identifier.Equals("post")) 
@@ -991,6 +1125,120 @@ namespace OpenTypeFonts
                     offset += ((len + 3) & ~3); 
                 }
             }
+        }
+
+        private byte[] BuildOS2(TableDirectoryEntry oldOS2)
+        {
+            MemoryStream outStream = new MemoryStream();
+            IOUtils.WriteShort(outStream, Os2version); 
+            short xAvgCharWidth = CalculateAverageWeight();
+            IOUtils.WriteShort(outStream,xAvgCharWidth);
+            IOUtils.WriteShort(outStream,Weight);
+            IOUtils.WriteShort(outStream, Width);
+            IOUtils.WriteShort(outStream, FsType);
+            IOUtils.WriteShort(outStream, SubscriptXSize);
+            IOUtils.WriteShort(outStream, SubscriptYSize);
+            IOUtils.WriteShort(outStream, SubscriptXOffset);
+            IOUtils.WriteShort(outStream, SubscriptYOffset);
+            IOUtils.WriteShort(outStream, SuperscriptXSize);
+            IOUtils.WriteShort(outStream, SuperscriptYSize);
+            IOUtils.WriteShort(outStream, SuperscriptXOffset);
+            IOUtils.WriteShort(outStream, SuperscriptYOffset);
+            IOUtils.WriteShort(outStream, StrikeoutSize);
+            IOUtils.WriteShort(outStream, StrikeoutPosition);
+            IOUtils.WriteShort(outStream, FamilyClass);
+            outStream.Write(panos,0,10);
+
+            if (Os2version == 0)
+            {
+                IOUtils.WriteInt(outStream, CharRange);
+            }
+            else
+            {
+                // TODO: calculate and adjust the ranges that really present in the font according to version 4 of the table
+                IOUtils.WriteInt(outStream, UnicodeRange1);
+                IOUtils.WriteInt(outStream, UnicodeRange2);
+                IOUtils.WriteInt(outStream, UnicodeRange3);
+                IOUtils.WriteInt(outStream, UnicodeRange4);
+            }
+
+            Encoding isoEncoding = Encoding.GetEncoding("iso-8859-1");
+            outStream.Write(isoEncoding.GetBytes(achVendID,0,4),0,4);
+
+            IOUtils.WriteShort(outStream, fsSelection);
+
+            int firstCharIndex = GetNewFirstIndex();
+            IOUtils.WriteShort(outStream,firstCharIndex);
+
+            int lastCharIndex = GetNewLastIndex(); 
+            IOUtils.WriteShort(outStream,lastCharIndex);
+
+            IOUtils.WriteShort(outStream, TypoAscender);
+            IOUtils.WriteShort(outStream, TypoDescender);
+            IOUtils.WriteShort(outStream, TypoLineGap);
+            IOUtils.WriteShort(outStream, WinAscent);
+            IOUtils.WriteShort(outStream, WinDescent);
+
+            if (Os2version == 0)
+            {
+                return outStream.ToArray();
+            }
+
+            // TODO: recalculate codepages in case version 0 or wrong
+            IOUtils.WriteInt(outStream, CodePageRange1);
+            IOUtils.WriteInt(outStream, CodePageRange2);
+
+            if (Os2version == 1)
+            {
+                return outStream.ToArray();
+            }
+
+
+            // TODO: add calculations in case default not set
+            IOUtils.WriteShort(outStream, Height);
+            IOUtils.WriteShort(outStream, CapHeight);
+            IOUtils.WriteShort(outStream, DefaultChar);
+            IOUtils.WriteShort(outStream, BreakChar);
+            IOUtils.WriteShort(outStream, MaxContext);
+
+            return outStream.ToArray();
+        }
+
+        private int GetNewLastIndex()
+        {
+            int value = 0;
+            foreach (var ch in characters.Keys)
+            {
+                if (characters[ch].Needed)
+                {
+                    if ((ch > value) && (ch != 0xFFFF))
+                    {
+                        value = ch;
+                    }
+                }
+            }
+            if (value > 0xFFFF) // can't be higher then that
+            {
+                value = 0xFFFF;
+            }
+            return value;
+           
+        }
+
+        private int GetNewFirstIndex()
+        {
+            int value = 0xFFFFF; // this is maximum allowed
+            foreach (var ch in characters.Keys)
+            {
+                if (characters[ch].Needed)
+                {
+                    if (ch < value)
+                    {
+                        value = ch;
+                    }
+                }
+            }
+            return value;
         }
 
         private byte[] BuildGlyphLocations(bool asShorts)
@@ -1689,7 +1937,14 @@ namespace OpenTypeFonts
             {
                 if ( cff.Needed )
                 {
-                    newArr[index++] = cff.Value;
+                    if (cff.Value != nameCFF)
+                    {
+                        newArr[index++] = cff.Value;                        
+                    }
+                    else
+                    {
+                        newArr[index++] = "Subset-" + cff.Value;
+                    }
                 }
             }
             return newArr;

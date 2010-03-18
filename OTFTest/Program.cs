@@ -11,8 +11,8 @@ namespace OTFTest
     {
         static void Main(string[] args)
         {
-            //using (Stream stream = File.OpenRead("AdobeHeitiStd-Regular.otf")) 
             using (Stream stream = File.OpenRead("test.otf")) 
+            //using (Stream stream = File.OpenRead("ariblk.ttf")) 
             //using (Stream stream = File.OpenRead("infont.otf"))
             {
                 OpenTypeFont font = new OpenTypeFont(stream,false);

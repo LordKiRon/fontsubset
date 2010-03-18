@@ -15,5 +15,6 @@ namespace OpenTypeFonts
         public short Lsb { get; set; }
         public int NamesIdCFF { get; set; }
         public int NewIndex { get; set; }
+
     }
 }

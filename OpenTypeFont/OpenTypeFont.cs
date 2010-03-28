@@ -736,6 +736,10 @@ namespace OpenTypeFonts
             {
                 return true;
             }
+            if (en.PlatformId == (short)PlatformId.Microsoft && (en.EncodingId == 1) ) // windows unicode
+            {
+                return true;
+            }
             if (en.PlatformId == (short)PlatformId.Microsoft && (en.EncodingId == 1 || en.EncodingId == 10) &&
                 ((en.LanguageId & 0x3FF) == 9))
             {

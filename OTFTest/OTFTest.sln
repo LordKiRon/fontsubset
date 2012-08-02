@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTFTest", "OTFTest.csproj", "{E9E71B91-8AFD-4B47-935D-9D764A92D943}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTypeFont", "..\OpenTypeFont\OpenTypeFont.csproj", "{6E8478B7-4CB0-4EA0-A1A3-018E197DDC90}"
